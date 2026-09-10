@@ -278,6 +278,52 @@ def cancel_order(ctx: AuthContext, order_id: int, reason: str) -> dict[str, Any]
     return {"ok": True, "order_id": order_id, "status": "cancelled"}
 
 
+def get_product(ctx: AuthContext, product_id: int) -> dict[str, Any]:
+    """Look up one catalog product by its product id. Risk tier: read.
+
+    Use this to turn the `product_id` on an order into a product name. Orders
+    carry a product id and no title, so `get_order` and `find_order` both
+    report which product was bought only as a number; this tool resolves it.
+
+    Every role may read the catalog, the same as `search_products`, so this
+    tool needs no permission check. It reveals nothing about who bought what:
+    it answers only "what is product N", and the caller must already be
+    authorized for whatever order supplied the id.
+
+    Args:
+        ctx: The caller's auth context. Unused here, but every tool takes it.
+        product_id: The catalog id of the product.
+
+    Returns:
+        On success: {"ok": True, "product_id": int, "store_id": int,
+        "title": str, "description": str, "category": str,
+        "price_usd": float}.
+        If no product has that id: {"ok": False, "error": "not_found",
+        "reason": ...} naming the id that was requested.
+
+    Implementation notes:
+        agent.db.list_products has no by-id lookup, so scan its result rather
+        than adding a second database layer.
+    """
+    with db.connection() as conn:
+        for product in db.list_products(conn):
+            if product.id == product_id:
+                return {
+                    "ok": True,
+                    "product_id": product.id,
+                    "store_id": product.store_id,
+                    "title": product.title,
+                    "description": product.description,
+                    "category": product.category,
+                    "price_usd": product.price_usd,
+                }
+    return {
+        "ok": False,
+        "error": "not_found",
+        "reason": f"no product #{product_id}",
+    }
+
+
 def find_order(ctx: AuthContext, query: str) -> dict[str, Any]:
     """Search the caller's orders by product name. Risk tier: read.
 

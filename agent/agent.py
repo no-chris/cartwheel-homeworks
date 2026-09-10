@@ -400,6 +400,14 @@ def cancel_order(
 
 
 @function_tool
+def get_product(
+    wrapper: RunContextWrapper[AuthContext], product_id: int
+) -> dict[str, Any]:
+    """Look up one catalog product by id. Use this to turn the product_id on an order into a product name."""
+    return _call(wrapper, hw_tools.get_product, product_id)
+
+
+@function_tool
 def find_order(
     wrapper: RunContextWrapper[AuthContext], query: str
 ) -> dict[str, Any]:
@@ -415,6 +423,7 @@ _COMMON_TOOLS = [
     search_help_center,
     get_policy,
     search_products,
+    get_product,
     get_order,
     issue_refund,
     cancel_order,
